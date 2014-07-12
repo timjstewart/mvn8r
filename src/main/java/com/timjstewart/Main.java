@@ -34,9 +34,9 @@ public class Main {
             new WatchDir(job.getProjectDirectory()).processEvents(new WatchDir.Handler() {
                 @Override
                 public void onChange(final String[] changedFiles) {
-                    AnsiConsole.out.println(ansi().fg(GREEN).a("Building.... ").reset());
+                    AnsiConsole.out.println(ansi().fg(WHITE).a("Building:").reset());
                     for (final String file : changedFiles) {
-                        AnsiConsole.out.println(ansi().fg(GREEN).a("  " + file).reset());
+                        AnsiConsole.out.println(ansi().fg( WHITE).a("  " + file).reset());
                     }
                     perform(job, properties);
                 }
@@ -58,13 +58,15 @@ public class Main {
                     @Override
                     public void consumeLine(String s) {
                         if (shouldIgnore(s)) {
-                        } else if (s.startsWith("[INFO]")) {
+                        } else if (s.contains("BUILD SUCCESSFUL")) {
                             AnsiConsole.out.println(ansi().fg(GREEN).a(s.substring(7)).reset());
+                        } else if (s.startsWith("[INFO]")) {
+                            AnsiConsole.out.println(ansi().fg(YELLOW).a(s.substring(7)).reset());
                         } else if (s.startsWith("[WARNING]")) {
                             AnsiConsole.out.println(ansi().fg(YELLOW).a(s.substring(10)).reset());
                         } else if (s.startsWith("[ERROR]") || s.contains("symbol: ") || s.contains("location: ")) {
                             AnsiConsole.out.println(ansi().fg(RED).a(s.substring(8)).reset());
-                        } else { //foo();
+                        } else {
                             //System.out.println(s);
                         }
                     }

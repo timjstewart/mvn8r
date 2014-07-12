@@ -125,7 +125,7 @@ class WatchDir {
         Timer timer = new Timer("ChangedFiles", true);
 
         timer.scheduleAtFixedRate(new TimerTask() {
-            @Override public void runs () {
+            @Override public void run () {
                 if (!changedFiles.isEmpty()) {
                     final Set<String> files = new HashSet<>();
                     files.addAll(changedFiles);
@@ -191,6 +191,8 @@ class WatchDir {
                 }
             }
         }
+
+        timer.cancel();
     }
 
     private String getFileExtension(Path child) {
