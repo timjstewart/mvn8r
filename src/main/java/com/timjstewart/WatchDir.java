@@ -78,9 +78,7 @@ class WatchDir {
         WatchKey key = dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
         if (trace) {
             Path prev = keys.get(key);
-            if (prev == null) {
-                // System.out.format("register: %s\n", dir);
-            } else {
+            if (prev != null) {
                 if (!dir.equals(prev)) {
                     System.out.format("update: %s -> %s\n", prev, dir);
                 }
@@ -93,7 +91,6 @@ class WatchDir {
      * Register the given directory, and all its sub-directories, with the WatchService.
      */
     private void registerAll(final Path start) throws IOException {
-        // register directory and sub-directories
         Files.walkFileTree(start, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs)
@@ -113,7 +110,6 @@ class WatchDir {
 
         registerAll(dir);
 
-        // enable trace after initial registration
         this.trace = true;
     }
 
@@ -127,6 +123,7 @@ class WatchDir {
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override public void run () {
                 if (!changedFiles.isEmpty()) {
+                    // if any changed files have accumulated...
                     final Set<String> files = new HashSet<>();
                     files.addAll(changedFiles);
                     changedFiles.clear();
@@ -169,6 +166,7 @@ class WatchDir {
                         extension.equals("groovy") ||
                         extension.equals("clj") ||
                         child.getFileName().toString().equals("pom.xml")) {
+                    // a file we're interested in has changed
                     changedFiles.add(child.getFileName().toString());
                 }
 
