@@ -1,0 +1,23 @@
+#! /bin/bash
+
+MVN8R_ROOT=~/src/mvn8r
+
+if [ ! -d ${MVN8R_ROOT} ]
+then
+        echo "could not find mvn8r directory" 1>&2
+        exit 1
+fi
+
+if [ ! -r ${MVN8R_ROOT}/target/mvn8r-*-jar-with-dependencies.jar ]
+then
+        echo "could not find mvn8r jar file" 1>&2
+        exit 1
+fi
+
+if [ ! -r ./pom.xml ]
+then
+        echo "could not find pom.xml file in: `pwd`" 1>&2
+        exit 1
+fi
+
+java -Dmaven.home=/usr/local/bin/ -cp ${MVN8R_ROOT}/target/mvn8r-*-jar-with-dependencies.jar com.timjstewart.Main ./pom.xml $*
