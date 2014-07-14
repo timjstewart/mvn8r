@@ -1,7 +1,6 @@
 package com.timjstewart;
 
 import java.util.Objects;
-import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 public class IgnoreLineContainingRule implements BlockRule {
@@ -12,23 +11,28 @@ public class IgnoreLineContainingRule implements BlockRule {
         this.text = Objects.requireNonNull(text, "text cannot be null");
     }
 
+    @Override
     public boolean isStartOfBlock(final String line) {
         return line.contains(text);
     }
 
+    @Override
     public boolean isEndOfBlock(final String line) {
         return true;
     }
 
+    @Override
     public String format(final String line) {
         return line;
     }
 
+    @Override
     public boolean shouldIgnore(final String line) {
         return true;
     }
 
-    @Override public boolean isNull() {
+    @Override
+    public boolean isNull() {
         return false;
     }
 }

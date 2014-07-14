@@ -1,6 +1,7 @@
 package com.timjstewart;
 
 import org.fusesource.jansi.Ansi;
+
 import static org.fusesource.jansi.Ansi.ansi;
 
 import java.util.Objects;
@@ -11,7 +12,7 @@ import java.util.regex.PatternSyntaxException;
 /**
  * determines which color to display text in and what part of the text to actually display.
  */
-public class MultiLineRule implements  BlockRule {
+public class MultiLineRule implements BlockRule {
 
     private final Ansi.Color color;
     private final Pattern startPattern;
@@ -27,11 +28,13 @@ public class MultiLineRule implements  BlockRule {
         this.endPattern = Pattern.compile(endRegex);
     }
 
-    @Override public boolean isNull() {
+    @Override
+    public boolean isNull() {
         return false;
     }
 
-    @Override public boolean shouldIgnore(final String line) {
+    @Override
+    public boolean shouldIgnore(final String line) {
         return line.trim().isEmpty();
     }
 
@@ -45,6 +48,7 @@ public class MultiLineRule implements  BlockRule {
         return endPattern.matcher(line).find();
     }
 
+    @Override
     public String format(final String line) {
         final Matcher matcher = startPattern.matcher(line);
         if (matcher.find()) {

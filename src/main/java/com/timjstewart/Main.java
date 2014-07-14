@@ -38,9 +38,9 @@ public class Main {
             new WatchDir(job.getProjectDirectory()).processEvents(new WatchDir.Handler() {
                 @Override
                 public void onChange(final String[] changedFiles) {
-                    AnsiConsole.out.println(ansi().fg(WHITE).a("» Building:").reset());
+                    AnsiConsole.out.println(ansi().fg(WHITE).a("● Building:").reset());
                     for (final String file : changedFiles) {
-                        AnsiConsole.out.println(ansi().fg(WHITE).a( " » " +  file).reset());
+                        AnsiConsole.out.println(ansi().fg(WHITE).a("  ○ " + file).reset());
                     }
                     perform(job, properties);
                 }
@@ -185,7 +185,6 @@ public class Main {
         } catch (IOException ex) {
             return defaults;
         }
-
     }
 
     private static void usage() {

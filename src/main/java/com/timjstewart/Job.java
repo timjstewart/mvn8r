@@ -4,18 +4,18 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.Objects;
 
-public class  Job {
+public class Job {
 
     private final String pomFile;
 
     private final String[] tasks;
 
     public Job(
-             final String pomFile,
-             final String[] tasks
+            final String pomFile,
+            final String[] tasks
     ) {
         this.pomFile = Objects.requireNonNull(pomFile);
-        this.tasks   = Objects.requireNonNull(tasks);
+        this.tasks = Objects.requireNonNull(tasks);
     }
 
     public String getPomFile() {

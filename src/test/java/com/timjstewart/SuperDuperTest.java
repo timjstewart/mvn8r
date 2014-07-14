@@ -5,12 +5,13 @@ import org.junit.Test;
 
 public class SuperDuperTest {
 
-    @Test public void testMe() {
+    @Test
+    public void testMe() {
         //Assert.fail();
     }
 
-    @Test public void testMeToo() {
+    @Test
+    public void testMeToo() {
         //Assert.fail();
     }
-
 }

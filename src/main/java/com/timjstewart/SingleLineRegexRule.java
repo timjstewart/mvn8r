@@ -20,7 +20,7 @@ public class SingleLineRegexRule implements BlockRule {
     public SingleLineRegexRule(
             final Ansi.Color color,
             final String regex
-    ) throws PatternSyntaxException {
+    )  throws PatternSyntaxException {
         this.color = Objects.requireNonNull(color, "color cannot be null");
         this.pattern = Pattern.compile(regex);
     }
