@@ -1,5 +1,5 @@
 package com.timjstewart;
-
+ 
 public interface BlockRule {
     public boolean isStartOfBlock(final String line);
     public boolean isEndOfBlock(final String line);
@@ -7,4 +7,3 @@ public interface BlockRule {
     public boolean shouldIgnore(final String line);
     public boolean isNull();
 }
-

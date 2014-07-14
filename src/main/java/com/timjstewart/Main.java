@@ -59,13 +59,17 @@ public class Main {
 
         rules.add(new SingleLineRegexRule(WHITE  , "(Running .*)"));
 
-        rules.add(new IgnoreLineContainingRule("----"));
+        rules.add(new IgnoreLineMatchingRegexRule("\\[[A-Z]+\\] *$"));
+
+        rules.add(new IgnoreLineContainingRule("---"));
         rules.add(new IgnoreLineContainingRule("Total time:"));
         rules.add(new IgnoreLineContainingRule("Finished at:"));
         rules.add(new IgnoreLineContainingRule("Compiling "));
         rules.add(new IgnoreLineContainingRule("Building "));
         rules.add(new IgnoreLineContainingRule("Final Memory"));
         rules.add(new IgnoreLineContainingRule("Copying"));
+        rules.add(new IgnoreLineContainingRule("Deleting "));
+        rules.add(new IgnoreLineContainingRule("Error stacktraces are turned on."));
         rules.add(new IgnoreLineContainingRule("For more information"));
         rules.add(new IgnoreLineContainingRule("Nothing to compile"));
         rules.add(new IgnoreLineContainingRule("Changes detected"));
@@ -86,6 +90,7 @@ public class Main {
         rules.add(new SingleLineRegexRule(RED, "(Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+, Skipped: [0-9]+, Time elapsed: [0-9\\.]+ sec)"));
 
         rules.add(new SingleLineRegexRule(GREEN, "(BUILD SUCCESSFUL)"));
+        rules.add(new SingleLineRegexRule(GREEN, "(BUILD SUCCESS)"));
         rules.add(new SingleLineRegexRule(YELLOW, "(No tests to run\\.)"));
         rules.add(new SingleLineRegexRule(WHITE, "( *symbol: .*)"));
         rules.add(new SingleLineRegexRule(RED, "\\[ERROR\\] (.*)"));
@@ -97,6 +102,8 @@ public class Main {
         InvocationRequest request = new DefaultInvocationRequest()
                 .setPomFile(new File(job.getPomFile()))
                 .setGoals(Arrays.asList(job.getTasks()))
+                .setJavaHome(new File("/Library/Java/JavaVirtualMachines/jdk1.7.0_51.jdk/Contents/Home"))
+                .setDebug(true)
                 .setOutputHandler(
                         new InvocationOutputHandler() {
                             private boolean done = false;
@@ -173,7 +180,7 @@ public class Main {
         if (homeDir == null) {
             System.err.println("Could not determine where user's home directory is.  Unable to load config.");
             return defaults;
-        }
+        } 
 
         Properties properties = new Properties(defaults);
 
