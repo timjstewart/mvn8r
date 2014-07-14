@@ -38,9 +38,9 @@ public class Main {
             new WatchDir(job.getProjectDirectory()).processEvents(new WatchDir.Handler() {
                 @Override
                 public void onChange(final String[] changedFiles) {
-                    AnsiConsole.out.println(ansi().fg(WHITE).a("● Building:").reset());
+                    AnsiConsole.out.println(ansi().fg(BLUE).a("Building:").reset());
                     for (final String file : changedFiles) {
-                        AnsiConsole.out.println(ansi().fg(WHITE).a("  ○ " + file).reset());
+                        AnsiConsole.out.println(ansi().fg(WHITE).a("  ○ ").fg(BLUE).a(  file).reset());
                     }
                     perform(job, properties);
                 }
@@ -57,7 +57,7 @@ public class Main {
 
         final List<BlockRule> rules = new ArrayList<>();
 
-        rules.add(new SingleLineRegexRule(WHITE, "(Running .*)"));
+        rules.add(new SingleLineRegexRule(WHITE  , "(Running .*)"));
 
         rules.add(new IgnoreLineContainingRule("----"));
         rules.add(new IgnoreLineContainingRule("Total time:"));
@@ -92,7 +92,7 @@ public class Main {
         rules.add(new SingleLineRegexRule(YELLOW, "\\[WARNING\\] (.*)"));
         rules.add(new SingleLineRegexRule(WHITE, "\\[INFO\\] (.*)"));
 
-        rules.add(new MultiLineRule(WHITE, "(Results :.*)", "(Tests run:.*)"));
+        rules.add(new MultiLineRule(BLUE , "(Results :.*)", "(Tests run:.*)"));
 
         InvocationRequest request = new DefaultInvocationRequest()
                 .setPomFile(new File(job.getPomFile()))

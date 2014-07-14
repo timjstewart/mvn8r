@@ -7,11 +7,11 @@ public class SuperDuperTest {
 
     @Test
     public void testMe() {
-        //Assert.fail();
+        Assert.fail();
     }
 
     @Test
     public void testMeToo() {
-        //Assert.fail();
+        Assert.fail();
     }
 }

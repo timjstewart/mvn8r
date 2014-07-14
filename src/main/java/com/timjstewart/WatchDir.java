@@ -31,6 +31,8 @@
 
 package com.timjstewart;
 
+import org.fusesource.jansi.AnsiConsole;
+
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
@@ -51,6 +53,9 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardWatchEventKinds.*;
+import static org.fusesource.jansi.Ansi.Color.BLUE;
+import static org.fusesource.jansi.Ansi.Color.WHITE;
+import static org.fusesource.jansi.Ansi.ansi;
 
 class WatchDir {
 
@@ -111,6 +116,10 @@ class WatchDir {
         registerAll(dir);
 
         this.trace = true;
+
+        AnsiConsole.out.println(ansi()
+                .fg(BLUE).a("Watching...")
+                .reset());
     }
 
     /**
