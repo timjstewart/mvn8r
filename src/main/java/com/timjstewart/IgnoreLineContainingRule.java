@@ -35,4 +35,9 @@ public class IgnoreLineContainingRule implements BlockRule {
     public boolean isNull() {
         return false;
     }
+
+    @Override
+    public String getName() {
+        return "IgnoreLineContainingRule";
+    }
 }

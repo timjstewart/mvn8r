@@ -12,7 +12,7 @@ public class NullRule implements BlockRule {
     }
 
     @Override
-    public boolean  isStartOfBlock(final String line) {
+    public boolean isStartOfBlock(final String line) {
         return false;
     }
 
@@ -33,5 +33,10 @@ public class NullRule implements BlockRule {
 
     @Override public boolean isNull() {
         return true;
+    }
+
+    @Override
+    public String getName() {
+        return "NullRule";
     }
 }

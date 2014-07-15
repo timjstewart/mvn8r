@@ -174,8 +174,10 @@ class WatchDir {
                         extension.equals("groovy") ||
                         extension.equals("clj") ||
                         child.getFileName().toString().equals("pom.xml")) {
-                    // a file we're interested in has changed
-                    changedFiles.add(child.getFileName().toString());
+                    if (!child.getFileName().toString().startsWith(".#")) {
+                       // a file we're interested in has changed
+                       changedFiles.add(child.getFileName().toString());
+                    }
                 }
 
                 if (kind == ENTRY_CREATE) {

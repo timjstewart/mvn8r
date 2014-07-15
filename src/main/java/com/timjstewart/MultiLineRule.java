@@ -69,5 +69,10 @@ public class MultiLineRule implements BlockRule {
             throw new RuleParseException(String.format("%s could not be parsed into a ColorRule.", text));
         }
     }
+
+    @Override
+    public String getName() {
+        return "MultiLineRule";
+    }
 }
 

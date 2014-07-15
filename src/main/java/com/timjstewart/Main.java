@@ -85,8 +85,10 @@ public class Main {
         rules.add(new IgnoreLineContainingRule("COMPILATION ERROR"));
         rules.add(new IgnoreLineContainingRule("Compilation failure"));
         rules.add(new IgnoreLineContainingRule("task-segment:"));
+        rules.add(new IgnoreLineContainingRule("selectAuthScheme"));
 
         rules.add(new SingleLineRegexRule(GREEN, "(Tests run: [0-9]+, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: [0-9\\.]+ sec)"));
+        rules.add(new SingleLineRegexRule(YELLOW, "(Tests run: [0-9]+, Failures: 0, Errors: 0, Skipped: [0-9]+, Time elapsed: [0-9\\.]+ sec)"));
         rules.add(new SingleLineRegexRule(RED, "(Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+, Skipped: [0-9]+, Time elapsed: [0-9\\.]+ sec)"));
 
         rules.add(new SingleLineRegexRule(GREEN, "(BUILD SUCCESSFUL)"));
@@ -94,8 +96,8 @@ public class Main {
         rules.add(new SingleLineRegexRule(YELLOW, "(No tests to run\\.)"));
         rules.add(new SingleLineRegexRule(WHITE, "( *symbol: .*)"));
         rules.add(new SingleLineRegexRule(RED, "\\[ERROR\\] (.*)"));
-        rules.add(new SingleLineRegexRule(YELLOW, "\\[WARNING\\] (.*)"));
-        rules.add(new SingleLineRegexRule(WHITE, "\\[INFO\\] (.*)"));
+        //rules.add(new SingleLineRegexRule(YELLOW, "\\[WARNING\\] (.*)"));
+        //rules.add(new SingleLineRegexRule(WHITE, "\\[INFO\\] (.*)"));
 
         rules.add(new MultiLineRule(BLUE , "(Results :.*)", "(Tests run:.*)"));
 
@@ -103,7 +105,9 @@ public class Main {
                 .setPomFile(new File(job.getPomFile()))
                 .setGoals(Arrays.asList(job.getTasks()))
                 .setJavaHome(new File("/Library/Java/JavaVirtualMachines/jdk1.7.0_51.jdk/Contents/Home"))
-                .setDebug(true)
+                .setDebug(false)
+                .setThreads("2.0C")
+                .setOffline(true)
                 .setOutputHandler(
                         new InvocationOutputHandler() {
                             private boolean done = false;

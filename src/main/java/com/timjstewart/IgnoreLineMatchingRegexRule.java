@@ -36,4 +36,9 @@ public class IgnoreLineMatchingRegexRule implements BlockRule {
     public boolean isNull() {
         return false;
     }
+
+    @Override
+    public String getName() {
+        return "IgnoreLineMatchingRegexRule";
+    }
 }

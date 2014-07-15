@@ -6,4 +6,5 @@ public interface BlockRule {
     public String  format(final String line);
     public boolean shouldIgnore(final String line);
     public boolean isNull();
+    public String getName();
 }
