@@ -21,8 +21,18 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 
+import com.timjstewart.rules.BlockRule;
+import com.timjstewart.rules.SingleLineRegexRule;
+import com.timjstewart.rules.NullRule;
+import com.timjstewart.rules.MultiLineRule;
+import com.timjstewart.rules.IgnoreLineMatchingRegexRule;
+import com.timjstewart.rules.IgnoreLineContainingRule;
+
 public class Main {
 
+    /**
+     * main entry point into the program
+     */
     public static void main(String[] args) {
 
         if (args.length < 2) {
@@ -32,20 +42,34 @@ public class Main {
 
         final Properties properties = loadProperties();
 
-        final Job job = new Job(args[0], Arrays.copyOfRange(args, 1, args.length));
+        final Job job = new Job(args[0], 
+                                Arrays.copyOfRange(args, 1, args.length),
+                                properties.getProperty("java.home"),
+                                properties.getProperty("threads.spec"));
 
         try {
-            new WatchDir(job.getProjectDirectory()).processEvents(new WatchDir.Handler() {
-                @Override
-                public void onChange(final String[] changedFiles) {
-                    AnsiConsole.out.println(ansi().fg(BLUE).a("Building:").reset());
-                    for (final String file : changedFiles) {
-                        AnsiConsole.out.println(ansi().fg(WHITE).a("  ○ ").fg(BLUE).a(  file).reset());
-                    }
-                    perform(job, properties);
-                }
-            });
+            new WatchDir(job.getProjectDirectory())
+                .processEvents(new WatchDir.Handler() {
 
+                        @Override
+                        public void onChange(final String[] changedFiles) {
+                            
+                            AnsiConsole.out.println(ansi()
+                                                    .fg(BLUE).a("=> ") 
+                                                    .fg(WHITE).a("Building:")
+                                                    .reset());
+                            
+                            for (final String file : changedFiles) {
+                                AnsiConsole.out.println(ansi()
+                                                        .fg(BLUE).a("===> ")
+                                                        .fg(WHITE).a(file)
+                                                        .reset());
+                            }
+                            
+                            perform(job, properties);
+                        }
+                    });
+            
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -54,6 +78,130 @@ public class Main {
     private static void perform(final Job job, final Properties properties) {
 
         AnsiConsole.systemInstall();
+
+        final List<BlockRule> rules = getBlockRules();
+
+        InvocationRequest request = new DefaultInvocationRequest()
+            .setPomFile(new File(job.getPomFile()))
+            .setGoals(Arrays.asList(job.getTasks()))
+            .setDebug(false)
+            .setOffline(true)
+            .setOutputHandler(new InvocationOutputHandler() {
+                    private boolean done = false;
+                    private BlockRule currentRule = NullRule.getInstance();
+                    
+                    @Override
+                    public void consumeLine(String line) {
+                        if (done)
+                            return;
+                        
+                        line = makePathsRelative(job, line);
+                        
+                        if (currentRule.isNull()) {
+                            // no current rule; find one
+                            currentRule = findMatchingRule(rules, line);
+                            
+                            if (!currentRule.shouldIgnore(line)) {
+                                AnsiConsole.out.println(currentRule.format(line));
+                            }
+                            
+                            if (currentRule.isEndOfBlock(line)) {
+                                currentRule = NullRule.getInstance();
+                            }
+                        } else if (currentRule.isEndOfBlock(line)) {
+                            // done processing the current rule
+                            if (!currentRule.shouldIgnore(line)) {
+                                AnsiConsole.out.println(currentRule.format(line));
+                            }
+                            currentRule = NullRule.getInstance();
+                        } else {
+                            // there is a current rule; see if it applies
+                            if (!currentRule.shouldIgnore(line)) {
+                                AnsiConsole.out.println(currentRule.format(line));
+                            }
+                        }
+                        
+                        if (line.contains("BUILD FAILURE")) {
+                            done = true;
+                        }
+                    }
+                });
+        
+        if (job.getJavaHome() != null) {
+            request.setJavaHome(new File(job.getJavaHome()));
+        }
+
+        if (job.getThreadsSpec() != null) {
+            request.setThreads(job.getThreadsSpec());
+        }
+
+        final Invoker invoker = new DefaultInvoker()
+                .setMavenHome(new File(properties.getProperty("maven.home")));
+
+        try {
+            invoker.execute(request);
+        } catch (MavenInvocationException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static BlockRule findMatchingRule(
+            final Collection<BlockRule> rules,
+            final String line) {
+
+        for (final BlockRule rule : rules) {
+            if (rule.isStartOfBlock(line)) {
+                return rule;
+            }
+        }
+
+        return NullRule.getInstance();
+    }
+
+    private static String makePathsRelative(final Job job, final String s) {
+
+        final String projectPath = Paths.get(System.getProperty("user.dir"), 
+                                             job.getProjectDirectory().toString())
+            .getParent().toString();
+
+        return s.replace(projectPath, ".");
+    }
+
+    private static Properties loadProperties() {
+        final Properties defaults = new Properties();
+
+        defaults.setProperty("maven.home", "/usr/");
+
+        final String homeDir = System.getProperty("user.home");
+
+        if (homeDir == null) {
+            System.err.println("Could not determine where user's home directory is. " +
+                               "Unable to load config.");
+            return defaults;
+        } 
+
+        Properties properties = new Properties(defaults);
+
+        File propertyFile = new File(new File(homeDir), ".mvn8r.properties");
+
+        try (FileInputStream in = new FileInputStream(propertyFile)) {
+            properties.load(in);
+            return properties;
+        } catch (IOException ex) {
+            return defaults;
+        }
+    }
+
+    private static void usage() {
+        System.err.println("usage: mvn8r POM_FILE TASK...");
+    }
+
+    /**
+     * returns an ordered list of BlockRules
+     *
+     * @todo load them from a file perhaps?
+     */
+    private static List<BlockRule> getBlockRules() {
 
         final List<BlockRule> rules = new ArrayList<>();
 
@@ -96,110 +244,10 @@ public class Main {
         rules.add(new SingleLineRegexRule(YELLOW, "(No tests to run\\.)"));
         rules.add(new SingleLineRegexRule(WHITE, "( *symbol: .*)"));
         rules.add(new SingleLineRegexRule(RED, "\\[ERROR\\] (.*)"));
-        //rules.add(new SingleLineRegexRule(YELLOW, "\\[WARNING\\] (.*)"));
-        //rules.add(new SingleLineRegexRule(WHITE, "\\[INFO\\] (.*)"));
 
         rules.add(new MultiLineRule(BLUE , "(Results :.*)", "(Tests run:.*)"));
 
-        InvocationRequest request = new DefaultInvocationRequest()
-                .setPomFile(new File(job.getPomFile()))
-                .setGoals(Arrays.asList(job.getTasks()))
-                .setJavaHome(new File("/Library/Java/JavaVirtualMachines/jdk1.7.0_51.jdk/Contents/Home"))
-                .setDebug(false)
-                .setThreads("2.0C")
-                .setOffline(true)
-                .setOutputHandler(
-                        new InvocationOutputHandler() {
-                            private boolean done = false;
-                            private BlockRule currentRule = NullRule.getInstance();
-
-                            @Override
-                            public void consumeLine(String line) {
-                                if (done)
-                                    return;
-
-                                line = makePathsRelative(job, line);
-
-                                if (currentRule.isNull()) {
-                                    currentRule = findMatchingRule(rules, line);
-
-                                    if (!currentRule.shouldIgnore(line)) {
-                                        AnsiConsole.out.println(currentRule.format(line));
-                                    }
-
-                                    if (currentRule.isEndOfBlock(line)) {
-                                        currentRule = NullRule.getInstance();
-                                    }
-                                } else if (currentRule.isEndOfBlock(line)) {
-                                    if (!currentRule.shouldIgnore(line)) {
-                                        AnsiConsole.out.println(currentRule.format(line));
-                                    }
-                                    currentRule = NullRule.getInstance();
-                                } else {
-                                    if (!currentRule.shouldIgnore(line)) {
-                                        AnsiConsole.out.println(currentRule.format(line));
-                                    }
-                                }
-
-                                if (line.contains("BUILD FAILURE")) {
-                                    done = true;
-                                }
-                            }
-                        }
-                );
-
-
-        final Invoker invoker = new DefaultInvoker()
-                .setMavenHome(new File(properties.getProperty("maven.home")));
-
-        try {
-            invoker.execute(request);
-        } catch (MavenInvocationException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static BlockRule findMatchingRule(
-            final Collection<BlockRule> rules,
-            final String line) {
-        for (final BlockRule rule : rules) {
-            if (rule.isStartOfBlock(line)) {
-                return rule;
-            }
-        }
-        return NullRule.getInstance();
-    }
-
-    private static String makePathsRelative(final Job job, final String s) {
-        final String projectPath = Paths.get(System.getProperty("user.dir"), job.getProjectDirectory().toString()).getParent().toString();
-        return s.replace(projectPath, ".");
-    }
-
-    private static Properties loadProperties() {
-        Properties defaults = new Properties();
-        defaults.setProperty("maven.home", "/usr/");
-
-        final String homeDir = System.getProperty("user.home");
-
-        if (homeDir == null) {
-            System.err.println("Could not determine where user's home directory is.  Unable to load config.");
-            return defaults;
-        } 
-
-        Properties properties = new Properties(defaults);
-
-        File propertyFile = new File(new File(homeDir), "mvn8r.properties");
-
-        try (FileInputStream in = new FileInputStream(propertyFile)) {
-            properties.load(in);
-            return properties;
-        } catch (IOException ex) {
-            return defaults;
-        }
-    }
-
-    private static void usage() {
-        System.err.println("usage: mvn8r POM_FILE TASK...");
+        return rules;
     }
 
 }

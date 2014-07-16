@@ -53,7 +53,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 
 import static java.nio.file.LinkOption.NOFOLLOW_LINKS;
 import static java.nio.file.StandardWatchEventKinds.*;
-import static org.fusesource.jansi.Ansi.Color.BLUE;
+import static org.fusesource.jansi.Ansi.Color.*;
 import static org.fusesource.jansi.Ansi.ansi;
 
 class WatchDir {
@@ -117,8 +117,10 @@ class WatchDir {
         this.trace = true;
 
         AnsiConsole.out.println(ansi()
-                .fg(BLUE).a("Watching...")
-                .reset());
+                                .fg(BLUE).a("=> ")
+                                .fg(WHITE).a("Watching: ")
+                                .fg(WHITE).a(dir.toString())
+                                .reset());
     }
 
     /**

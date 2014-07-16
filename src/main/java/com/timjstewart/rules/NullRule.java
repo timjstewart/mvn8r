@@ -1,4 +1,4 @@
-package com.timjstewart;
+package com.timjstewart.rules;
 
 public class NullRule implements BlockRule {
 
