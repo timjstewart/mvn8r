@@ -12,18 +12,18 @@ import org.fusesource.jansi.AnsiConsole;
 import static org.fusesource.jansi.Ansi.*;
 import static org.fusesource.jansi.Ansi.Color.*;
 
-import java.io.File;
-import java.io.FilenameFilter;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.nio.file.Paths;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -32,11 +32,11 @@ import java.util.Properties;
 
 import com.timjstewart.rules.BlockRule;
 import com.timjstewart.rules.BlockRuleListener;
-import com.timjstewart.rules.SingleLineRegexRule;
-import com.timjstewart.rules.NullRule;
-import com.timjstewart.rules.MultiLineRule;
-import com.timjstewart.rules.IgnoreLineMatchingRegexRule;
 import com.timjstewart.rules.IgnoreLineContainingRule;
+import com.timjstewart.rules.IgnoreLineMatchingRegexRule;
+import com.timjstewart.rules.MultiLineRule;
+import com.timjstewart.rules.NullRule;
+import com.timjstewart.rules.SingleLineRegexRule;
 
 public class Main {
 
@@ -59,6 +59,10 @@ public class Main {
         watchForChanges(job, properties);
     }
 
+    /**
+     * monitor file system for changes to files that would require a
+     * build.  When one or more of them change, start a maven build
+     */
     private static void watchForChanges(final Job job,
                                         final Properties properties) {
         try {
@@ -92,6 +96,8 @@ public class Main {
                                 final Properties properties, 
                                 final String[] changedFiles) {
 
+        // array hack because flag must be final because it's passed
+        // to an anonymous class
         final Boolean[] unitTestFailed = new Boolean[] { false };
 
         final List<BlockRule> rules = getBlockRules(new BlockRuleListener() {
@@ -160,9 +166,9 @@ public class Main {
         try {
             final InvocationResult result = invoker.execute(request);
 
-            //if (unitTestFailed[0]) {
-            //    printFailedUnitTestStackTraces(job);
-            //}
+            if (unitTestFailed[0]) {
+                printFailedUnitTestStackTraces(job);
+            }
         } catch (MavenInvocationException e) {
             e.printStackTrace();
         }
@@ -303,6 +309,9 @@ public class Main {
     }
 
     private static void printFailedUnitTestStackTraces(final Job job) {
+
+        System.out.println();
+
         final Path reportDirectory = 
             Paths.get(job.getProjectDirectory().toString(),
                       "target",
@@ -312,17 +321,53 @@ public class Main {
                 @Override
                 public boolean accept(final File file, final String name) {
                     return name.endsWith(".txt");
-                }
-            })) {
+                }})) {
             try {
+
                 final FileInputStream stream = new FileInputStream(file.toString());
                 final InputStreamReader reader = new InputStreamReader(stream, Charset.forName("UTF-8"));
                 final BufferedReader bufReader = new BufferedReader(reader);
                 
                 String line = null;
+
+                final int MAX_LINES = 5;
+                int lines = 0;
+                String testSet = null;
                 
                 while ((line = bufReader.readLine()) != null) {
+
+                    if (line.startsWith("---") || line.startsWith("Tests run:"))
+                        continue;
+
+                    if (line.startsWith("Test set: ")) {
+                        testSet = line;
+                        continue;
+                    }
+
+                    if (line.trim().startsWith("at ")) {
+                        lines++;
+                        if (lines > MAX_LINES)
+                            continue;
+                    }
+
+                    if (line.trim().isEmpty())
+                        lines = 0;
+
+                    if (testSet != null) {
+                        AnsiConsole.out.println(ansi()
+                                                .fg(RED).a("=> ") 
+                                                .fg(WHITE).a(testSet)
+                                                .reset());
+
+                        testSet = null;
+                    }
+
                     System.out.println(line);
+
+                    if (line.trim().startsWith("at ")) {
+                        if (lines == MAX_LINES)
+                            System.out.println("        ... other stack frames omitted ...");
+                    }
                 }
             } catch (FileNotFoundException  ex) {
                 

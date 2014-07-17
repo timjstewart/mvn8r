@@ -119,7 +119,7 @@ class WatchDir {
         AnsiConsole.out.println(ansi()
                                 .fg(BLUE).a("=> ")
                                 .fg(WHITE).a("Watching: ")
-                                .fg(BLUE).a(System.getProperty("user.dir"))
+                                .fg(WHITE).a(System.getProperty("user.dir"))
                                 .fg(WHITE).a("...")
                                 .reset());
     }
