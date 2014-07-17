@@ -119,7 +119,8 @@ class WatchDir {
         AnsiConsole.out.println(ansi()
                                 .fg(BLUE).a("=> ")
                                 .fg(WHITE).a("Watching: ")
-                                .fg(WHITE).a(dir.toString())
+                                .fg(BLUE).a(System.getProperty("user.dir"))
+                                .fg(WHITE).a("...")
                                 .reset());
     }
 
@@ -169,17 +170,8 @@ class WatchDir {
                 Path name = ev.context();
                 Path child = dir.resolve(name);
 
-                final String extension = getFileExtension(child);
-
-                if (extension.equals("java") ||
-                        extension.equals("scala") ||
-                        extension.equals("groovy") ||
-                        extension.equals("clj") ||
-                        child.getFileName().toString().equals("pom.xml")) {
-                    if (!child.getFileName().toString().startsWith(".#")) {
-                       // a file we're interested in has changed
-                       changedFiles.add(child.getFileName().toString());
-                    }
+                if (fileRequiresBuild(child)) {
+                    changedFiles.add(child.getFileName().toString());
                 }
 
                 if (kind == ENTRY_CREATE) {
@@ -205,7 +197,7 @@ class WatchDir {
         timer.cancel();
     }
 
-    private String getFileExtension(Path child) {
+    private static String getFileExtension(Path child) {
         final String fileName = child.getFileName().toString();
 
         int i = fileName.lastIndexOf('.');
@@ -215,5 +207,26 @@ class WatchDir {
         } else {
             return "";
         }
+    }
+
+    private static boolean fileRequiresBuild(final Path path) {
+
+        final String fileName = path.getFileName().toString();
+
+        if (fileName.startsWith(".#"))
+            return false;
+
+        final String extension = getFileExtension(path);
+
+        final String[] extensions = new String[] {
+            "java", "scala", "groovy", "clj"
+        };
+
+        for (final String e : extensions) {
+            if (extension.equals(e))
+                return true;
+        }
+
+        return fileName.equals("pom.xml");
     }
 }

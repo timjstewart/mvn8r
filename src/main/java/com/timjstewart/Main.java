@@ -4,6 +4,7 @@ import org.apache.maven.shared.invoker.DefaultInvocationRequest;
 import org.apache.maven.shared.invoker.DefaultInvoker;
 import org.apache.maven.shared.invoker.InvocationOutputHandler;
 import org.apache.maven.shared.invoker.InvocationRequest;
+import org.apache.maven.shared.invoker.InvocationResult;
 import org.apache.maven.shared.invoker.Invoker;
 import org.apache.maven.shared.invoker.MavenInvocationException;
 import org.fusesource.jansi.AnsiConsole;
@@ -12,9 +13,17 @@ import static org.fusesource.jansi.Ansi.*;
 import static org.fusesource.jansi.Ansi.Color.*;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -22,6 +31,7 @@ import java.util.List;
 import java.util.Properties;
 
 import com.timjstewart.rules.BlockRule;
+import com.timjstewart.rules.BlockRuleListener;
 import com.timjstewart.rules.SingleLineRegexRule;
 import com.timjstewart.rules.NullRule;
 import com.timjstewart.rules.MultiLineRule;
@@ -40,13 +50,17 @@ public class Main {
             System.exit(1);
         }
 
+        AnsiConsole.systemInstall();
+
         final Properties properties = loadProperties();
 
-        final Job job = new Job(args[0], 
-                                Arrays.copyOfRange(args, 1, args.length),
-                                properties.getProperty("java.home"),
-                                properties.getProperty("threads.spec"));
+        final Job job = createJob(args, properties);
 
+        watchForChanges(job, properties);
+    }
+
+    private static void watchForChanges(final Job job,
+                                        final Properties properties) {
         try {
             new WatchDir(job.getProjectDirectory())
                 .processEvents(new WatchDir.Handler() {
@@ -66,26 +80,32 @@ public class Main {
                                                         .reset());
                             }
                             
-                            perform(job, properties);
+                            perform(job, properties, changedFiles);
                         }
                     });
-            
         } catch (IOException ex) {
             ex.printStackTrace();
         }
     }
 
-    private static void perform(final Job job, final Properties properties) {
+    private static void perform(final Job job, 
+                                final Properties properties, 
+                                final String[] changedFiles) {
 
-        AnsiConsole.systemInstall();
+        final Boolean[] unitTestFailed = new Boolean[] { false };
 
-        final List<BlockRule> rules = getBlockRules();
+        final List<BlockRule> rules = getBlockRules(new BlockRuleListener() {
+                @Override
+                public void onRuleMatched(final String line) {
+                    unitTestFailed[0] = true;
+                }
+            });
 
         InvocationRequest request = new DefaultInvocationRequest()
             .setPomFile(new File(job.getPomFile()))
             .setGoals(Arrays.asList(job.getTasks()))
             .setDebug(false)
-            .setOffline(true)
+            .setOffline(!pomFileChanged(changedFiles))
             .setOutputHandler(new InvocationOutputHandler() {
                     private boolean done = false;
                     private BlockRule currentRule = NullRule.getInstance();
@@ -98,7 +118,6 @@ public class Main {
                         line = makePathsRelative(job, line);
                         
                         if (currentRule.isNull()) {
-                            // no current rule; find one
                             currentRule = findMatchingRule(rules, line);
                             
                             if (!currentRule.shouldIgnore(line)) {
@@ -139,10 +158,30 @@ public class Main {
                 .setMavenHome(new File(properties.getProperty("maven.home")));
 
         try {
-            invoker.execute(request);
+            final InvocationResult result = invoker.execute(request);
+
+            //if (unitTestFailed[0]) {
+            //    printFailedUnitTestStackTraces(job);
+            //}
         } catch (MavenInvocationException e) {
             e.printStackTrace();
         }
+    }
+
+    /**
+     * @return true iff the pom.xml file is among the changed files.
+     * This way we can build the project in offline mode if the
+     * pom.xml file has not changed and save some time.
+     *
+     * Downside: user may have to run 'mvn compile' from time to time
+     * to update dependencies introduced while this program is not
+     * running.
+     */
+    private static boolean pomFileChanged(final String[] changedFiles) {
+        for (final String changedFile : changedFiles)
+            if (changedFile.equals("pom.xml"))
+                return true;
+        return false;
     }
 
     private static BlockRule findMatchingRule(
@@ -151,6 +190,7 @@ public class Main {
 
         for (final BlockRule rule : rules) {
             if (rule.isStartOfBlock(line)) {
+                rule.onRuleMatched(line);
                 return rule;
             }
         }
@@ -201,7 +241,7 @@ public class Main {
      *
      * @todo load them from a file perhaps?
      */
-    private static List<BlockRule> getBlockRules() {
+    private static List<BlockRule> getBlockRules(final BlockRuleListener onUnitTestFailed) {
 
         final List<BlockRule> rules = new ArrayList<>();
 
@@ -237,7 +277,11 @@ public class Main {
 
         rules.add(new SingleLineRegexRule(GREEN, "(Tests run: [0-9]+, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: [0-9\\.]+ sec)"));
         rules.add(new SingleLineRegexRule(YELLOW, "(Tests run: [0-9]+, Failures: 0, Errors: 0, Skipped: [0-9]+, Time elapsed: [0-9\\.]+ sec)"));
-        rules.add(new SingleLineRegexRule(RED, "(Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+, Skipped: [0-9]+, Time elapsed: [0-9\\.]+ sec)"));
+
+        final BlockRule failedUnitTest = 
+            new SingleLineRegexRule(RED, "(Tests run: [0-9]+, Failures: [0-9]+, Errors: [0-9]+, Skipped: [0-9]+, Time elapsed: [0-9\\.]+ sec)");
+        rules.add(failedUnitTest);
+        failedUnitTest.addListener(onUnitTestFailed);
 
         rules.add(new SingleLineRegexRule(GREEN, "(BUILD SUCCESSFUL)"));
         rules.add(new SingleLineRegexRule(GREEN, "(BUILD SUCCESS)"));
@@ -250,4 +294,41 @@ public class Main {
         return rules;
     }
 
+    private static Job createJob(final String[] args,
+                                 final Properties properties) {
+        return new Job(args[0], 
+                       Arrays.copyOfRange(args, 1, args.length),
+                       properties.getProperty("java.home"),
+                       properties.getProperty("threads.spec"));
+    }
+
+    private static void printFailedUnitTestStackTraces(final Job job) {
+        final Path reportDirectory = 
+            Paths.get(job.getProjectDirectory().toString(),
+                      "target",
+                      "surefire-reports");
+
+        for (final File file : reportDirectory.toFile().listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(final File file, final String name) {
+                    return name.endsWith(".txt");
+                }
+            })) {
+            try {
+                final FileInputStream stream = new FileInputStream(file.toString());
+                final InputStreamReader reader = new InputStreamReader(stream, Charset.forName("UTF-8"));
+                final BufferedReader bufReader = new BufferedReader(reader);
+                
+                String line = null;
+                
+                while ((line = bufReader.readLine()) != null) {
+                    System.out.println(line);
+                }
+            } catch (FileNotFoundException  ex) {
+                
+            } catch (IOException  ex) {
+
+            }
+        }
+    }
 }

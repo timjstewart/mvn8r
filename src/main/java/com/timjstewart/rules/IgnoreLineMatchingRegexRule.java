@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
-public class IgnoreLineMatchingRegexRule implements BlockRule {
+public class IgnoreLineMatchingRegexRule extends BaseBlockRule {
 
     private final Pattern pattern;
 

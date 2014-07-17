@@ -12,7 +12,7 @@ import java.util.regex.PatternSyntaxException;
 /**
  * determines which color to display text in and what part of the text to actually display.
  */
-public class MultiLineRule implements BlockRule {
+public class MultiLineRule extends BaseBlockRule {
 
     private final Ansi.Color color;
     private final Pattern startPattern;

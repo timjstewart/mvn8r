@@ -12,7 +12,7 @@ import static org.fusesource.jansi.Ansi.ansi;
 /**
  * determines which color to display text in and what part of the text to actually display.
  */
-public class SingleLineRegexRule implements BlockRule {
+public class SingleLineRegexRule extends BaseBlockRule {
 
     private final Ansi.Color color;
     private final Pattern pattern;

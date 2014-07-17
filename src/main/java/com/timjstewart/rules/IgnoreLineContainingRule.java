@@ -3,7 +3,7 @@ package com.timjstewart.rules;
 import java.util.Objects;
 import java.util.regex.PatternSyntaxException;
 
-public class IgnoreLineContainingRule implements BlockRule {
+public class IgnoreLineContainingRule extends BaseBlockRule {
 
     private final String text;
 

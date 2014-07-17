@@ -1,6 +1,6 @@
 package com.timjstewart.rules;
 
-public class NullRule implements BlockRule {
+public class NullRule extends BaseBlockRule {
 
     private static final NullRule instance = new NullRule();
 
