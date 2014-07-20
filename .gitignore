@@ -5,3 +5,5 @@ target/
 *.jar
 *~
 .DS_Store
+/TAGS
+/.gitignore
