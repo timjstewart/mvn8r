@@ -31,6 +31,8 @@
 
 package com.timjstewart;
 
+import com.sun.nio.file.SensitivityWatchEventModifier;
+
 import org.fusesource.jansi.AnsiConsole;
 
 import java.io.IOException;
@@ -79,7 +81,13 @@ class WatchDir {
      * Register the given directory with the WatchService
      */
     private void register(Path dir) throws IOException {
-        WatchKey key = dir.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+        WatchKey key = dir.register(
+            watcher,
+            new WatchEvent.Kind[] {
+                ENTRY_MODIFY, ENTRY_DELETE, ENTRY_MODIFY
+            },
+            SensitivityWatchEventModifier.HIGH);
+
         if (trace) {
             Path prev = keys.get(key);
             if (prev != null) {
